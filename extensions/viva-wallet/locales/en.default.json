@@ -1,8 +1,7 @@
 {
   "name": "Viva Wallet",
-  "tile_heading": "POS smart grid",
-  "tile_subheading": "{{flavor}} Extension",
-  "modal_heading": "POS modal",
-  "welcome": "Welcome to the {{flavor}} extension"
+  "tile_heading": "Viva Wallet Payments",
+  "tile_subheading": "Accept terminal payments in Shopify POS",
+  "modal_heading": "Viva Wallet Terminal",
+  "welcome": "Accept Viva Wallet payments directly from Shopify POS"
 }
-

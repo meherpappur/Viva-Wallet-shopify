@@ -6,7 +6,7 @@ type = "ui_extension"
 name = "t:name"
 uid = "d3297932-462f-7d27-e4cd-2a86c5005fea2dbdc818"
 handle = "viva-wallet"
-description = "A preact POS UI extension"
+description = "Accept Viva Wallet terminal payments directly in Shopify POS."
 
 # module: file that contains your extension’s source code
 # target: location where your extension appears in POS

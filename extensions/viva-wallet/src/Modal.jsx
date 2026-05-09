@@ -4,22 +4,60 @@ import { useMemo, useState, useCallback } from "preact/hooks";
 import { PendingView } from "./components/Pending.jsx";
 import { SuccessView } from "./components/Success.jsx";
 import { ErrorView } from "./components/Error.jsx";
+
 async function requestVivaPayment({
   amountInCents,
   cashRegisterId,
   merchantRef,
 }) {
-  const res = await fetch("/api/viva-payment", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ amountInCents, cashRegisterId, merchantRef }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error ?? "Payment request failed");
+  try {
+    // TEMP: API disabled for testing
+    // const res = await fetch("/api/viva-payment", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({ amountInCents, cashRegisterId, merchantRef }),
+    // });
+
+    // if (!res.ok) {
+    //   const err = await res.json().catch(() => ({
+    //     error: `HTTP ${res.status}`,
+    //   }));
+    //   throw new Error(err.error ?? "Payment request failed");
+    // }
+
+    // return res.json();
+
+    // Dummy response after 3 seconds
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    const response = {
+      ok: true,
+      status: "approved",
+      transactionId: "TXN_TEST_123456",
+      sessionId: "SESSION_TEST_789",
+      merchantRef,
+      amount: amountInCents,
+      currency: "978",
+      message: "Payment successful",
+      timestamp: new Date().toISOString(),
+    };
+
+    // // SAVE TO SHOPIFY CART ATTRIBUTES
+    // await shopify.cart.addCartProperties({
+    //   merchantRef: response.merchantRef,
+    //   vivaReferenceId: response.transactionId,
+    // });
+
+    return response;
+  } catch (err) {
+    console.error("Viva payment error:", err);
+
+    return {
+      ok: false,
+      status: "failed",
+      message: err.message || "Payment failed",
+    };
   }
-  return res.json();
-  // Expected shape: { ok, transactionId, amount, message, sessionId }
 }
 
 export default async () => {
@@ -29,17 +67,15 @@ export default async () => {
 function Extension() {
   const { cart, toast } = shopify;
 
-  // const subtotal = Number(cart.current.value?.subtotal ?? 0);
   const subtotal = 100;
-  // ── state ──────────────────────────────────────────────────────────────────
-  const [view, setView] = useState("success"); // form | pending | success | error
+
+  const [view, setView] = useState("form");
   const [paymentType, setPaymentType] = useState("full");
   const [customAmount, setCustomAmount] = useState("");
   const [merchantRef, setMerchantRef] = useState("");
-  const [result, setResult] = useState(null); // last API response
+  const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // ── derived ────────────────────────────────────────────────────────────────
   const amountToSend = useMemo(() => {
     if (paymentType === "full") return subtotal;
     const n = parseFloat(customAmount);
@@ -60,7 +96,6 @@ function Extension() {
 
   const canSubmit = amountToSend > 0 && !amountError;
 
-  // ── handlers ───────────────────────────────────────────────────────────────
   const handleSend = useCallback(async () => {
     if (!canSubmit) return;
 
@@ -97,21 +132,92 @@ function Extension() {
     setResult(null);
     setErrorMsg("");
   }, []);
+
+  if (view === "pending") {
+    return (
+      <s-page heading="Viva Terminal Payment">
+        <s-box
+          padding="base"
+          alignItems="center"
+          justifyContent="center"
+          blockSize="fill"
+        >
+          <PendingView amountToSend={amountToSend} />
+        </s-box>
+      </s-page>
+    );
+  }
+
+  if (view === "success") {
+    return (
+      <s-page heading="Viva Terminal Payment">
+        <s-box
+          padding="base"
+          alignItems="center"
+          justifyContent="center"
+          blockSize="fill"
+        >
+          <SuccessView
+            result={result}
+            amountToSend={amountToSend}
+            merchantRef={merchantRef}
+            paymentType={paymentType}
+            remainingAmount={remainingAmount}
+            onReset={handleReset}
+          />
+        </s-box>
+      </s-page>
+    );
+  }
+
+  if (view === "error") {
+    return (
+      <s-page heading="Viva Terminal Payment">
+        <s-box
+          padding="base"
+          alignItems="center"
+          justifyContent="center"
+          blockSize="fill"
+        >
+          <ErrorView
+            errorMsg={errorMsg}
+            result={result}
+            amountToSend={amountToSend}
+            onRetry={handleSend}
+            onReset={handleReset}
+          />
+        </s-box>
+      </s-page>
+    );
+  }
+
   return (
     <s-page heading="Viva Terminal Payment">
-      <s-scroll-box>
-        <s-box padding="base">
-          {/* ── FORM VIEW ─────────────────────────────────────────────── */}
-          {view === "form" && (
+      <s-stack
+        justifyContent="center"
+        alignItems="center"
+        blockSize="100%"
+        direction="block"
+      >
+        <s-scroll-box inlineSize="70%">
+          <s-box padding="base" alignItems="center" justifyContent="center">
             <s-stack gap="large">
-              {/* Terminal badge */}
-              <s-stack direction="inline" gap="small" align-items="center">
-                <s-icon name="payment-terminal" />
-                <s-text tone="subdued">Viva card machine ready</s-text>
-                <s-badge tone="success">Online</s-badge>
+              <s-stack direction="inline" alignItems="center" gap="base">
+                <s-box inlineSize="56px" blockSize="56px">
+                  <s-image
+                    src="https://cdn-icons-png.flaticon.com/128/8983/8983163.png"
+                    alt="Terminal"
+                  />
+                </s-box>
+
+                <s-stack>
+                  <s-text fontWeight="bold">Viva Card Terminal 💳</s-text>
+                  <s-text tone="subdued" variant="bodySm">
+                    Terminal is online and ready to take payment
+                  </s-text>
+                </s-stack>
               </s-stack>
 
-              {/* Order summary card */}
               <s-section heading="Order summary">
                 <s-stack gap="small">
                   <s-stack direction="inline" justifyContent="space-between">
@@ -121,7 +227,6 @@ function Extension() {
                 </s-stack>
               </s-section>
 
-              {/* Payment type */}
               <s-section heading="Payment amount">
                 <s-stack gap="base">
                   <s-choice-list
@@ -137,7 +242,6 @@ function Extension() {
                     <s-choice value="custom">Split / custom amount</s-choice>
                   </s-choice-list>
 
-                  {/* Custom amount input */}
                   {paymentType === "custom" && (
                     <s-stack gap="small">
                       <s-number-field
@@ -151,7 +255,6 @@ function Extension() {
                         onChange={(e) => setCustomAmount(e.currentTarget.value)}
                       />
 
-                      {/* Remaining balance */}
                       {!amountError &&
                         amountToSend > 0 &&
                         amountToSend < subtotal && (
@@ -170,7 +273,6 @@ function Extension() {
                 </s-stack>
               </s-section>
 
-              {/* Charge summary */}
               <s-section>
                 <s-stack gap="small">
                   <s-stack direction="inline" justifyContent="space-between">
@@ -182,7 +284,6 @@ function Extension() {
                 </s-stack>
               </s-section>
 
-              {/* CTA */}
               <s-button
                 variant="primary"
                 disabled={!canSubmit}
@@ -192,29 +293,9 @@ function Extension() {
                 terminal
               </s-button>
             </s-stack>
-          )}
-
-          {view === "pending" && <PendingView amountToSend={amountToSend} />}
-
-          {view === "success" && (
-            <SuccessView
-              result={{
-                amount: 200,
-              }}
-            />
-          )}
-
-          {view === "error" && (
-            <ErrorView
-              errorMsg={errorMsg}
-              result={result}
-              amountToSend={amountToSend}
-              onRetry={handleSend}
-              onReset={handleReset}
-            />
-          )}
-        </s-box>
-      </s-scroll-box>
+          </s-box>
+        </s-scroll-box>
+      </s-stack>
     </s-page>
   );
 }
