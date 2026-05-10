@@ -41,7 +41,16 @@ export async function initiateSale(token, params, env = VIVA_ENV) {
     body: JSON.stringify(payload),
   });
 
-  const data = await res.json();
+  const text = await res.text();
+
+let data = {};
+if (text) {
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = { raw: text };
+  }
+}
 
   if (!res.ok) {
     log("err", "initiateSale", "Failed", data);
