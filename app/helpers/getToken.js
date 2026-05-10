@@ -6,14 +6,15 @@ export async function getToken(clientId, clientSecret, env = VIVA_ENV) {
 
   const body = new URLSearchParams({
     grant_type: "client_credentials",
+    client_id: clientId,
+    client_secret: clientSecret,
   });
 
-  const basicAuth = btoa(`${clientId}:${clientSecret}`);
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: `Basic ${basicAuth}`,
+      Accept: "application/json",
     },
     body,
   });
@@ -27,5 +28,5 @@ export async function getToken(clientId, clientSecret, env = VIVA_ENV) {
 
   log("ok", "getToken", "Token received");
 
-  return data.access_token;
+  return data;
 }
