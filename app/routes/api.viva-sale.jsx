@@ -1,5 +1,5 @@
 import { getToken } from "../helpers/getToken.js";
-import { searchDevices } from "../helpers/searchDevices.js";
+//import { searchDevices } from "../helpers/searchDevices.js";
 import { initiateSale } from "../helpers/initiateSale.js";
 import { pollSession } from "../helpers/pollSession.js";
 
@@ -53,7 +53,7 @@ export const action = async ({ request }) => {
 
     const access_token = await getCachedToken();
 
-    const devices = await searchDevices(access_token, {
+  /*  const devices = await searchDevices(access_token, {
       statusId: 1,
       sourceCode,
     });
@@ -69,12 +69,18 @@ export const action = async ({ request }) => {
     }
 
     const terminalId = devices[0].terminalId;
+*/
 
-    const sale = await initiateSale(access_token, {
-      terminalId,
-      cashRegisterId,
-      amount,
-    });
+    const terminalId = "16731762";  
+   const sale = await initiateSale(access_token, {
+  terminalId,
+  cashRegisterId,
+  amount,
+  tipAmount: 0,
+  currencyCode: "978",
+  merchantReference: `6e4d8cd5-68ad-4f82-9b55-26bb34a8e786`,
+  customerTrns: "Shopify POS sale",
+});
 
     const result = await new Promise((resolve, reject) => {
       const { stop } = pollSession(
