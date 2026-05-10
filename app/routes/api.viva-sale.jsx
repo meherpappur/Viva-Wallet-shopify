@@ -2,8 +2,10 @@ import { getToken } from "../helpers/getToken.js";
 import { searchDevices } from "../helpers/searchDevices.js";
 import { initiateSale } from "../helpers/initiateSale.js";
 import { pollSession } from "../helpers/pollSession.js";
+
 const cashRegisterId = "POS-Wholesale";
 const sourceCode = "123456";
+
 let cache = {
   token: null,
   expiresAt: 0,
@@ -15,14 +17,17 @@ async function getCachedToken() {
   const now = Date.now();
 
   const valid = cache.token && cache.expiresAt - BUFFER > now;
-
   if (valid) return cache.token;
+
+  if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET) {
+    throw new Error("Missing Viva client credentials");
+  }
 
   const tokenData = await getToken(
     process.env.CLIENT_ID,
     process.env.CLIENT_SECRET,
   );
-  console.log(process.env.CLIENT_ID);
+
   cache = {
     token: tokenData.access_token,
     expiresAt: now + tokenData.expires_in * 1000,
@@ -34,7 +39,6 @@ async function getCachedToken() {
 export const action = async ({ request }) => {
   try {
     const body = await request.json();
-
     const { amount } = body;
 
     if (!amount) {
@@ -78,11 +82,13 @@ export const action = async ({ request }) => {
         sale.sessionId,
         (data) => {
           if (data.eventId === 1100) {
+            clearTimeout(timeout);
             stop();
             resolve(data);
           }
 
           if ([1200, 1201, 1300, 1400].includes(data.eventId)) {
+            clearTimeout(timeout);
             stop();
             reject(data);
           }
@@ -90,7 +96,7 @@ export const action = async ({ request }) => {
         { intervalMs: 2000 },
       );
 
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         stop();
         reject({ error: "Payment timeout" });
       }, 30000);
@@ -112,7 +118,7 @@ export const action = async ({ request }) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: err?.message || "Payment failed",
+        error: err?.message || err?.error || "Payment failed",
       }),
       { status: 500 },
     );
