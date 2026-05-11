@@ -1,4 +1,3 @@
-import { VIVA_ENV } from "../helpers/config";
 import { getSessionById } from "app/helpers/getSessionById.js";
 
 export const action = async ({ request }) => {
@@ -29,7 +28,7 @@ export const action = async ({ request }) => {
     }
 
     // Get session
-    const result = await getSessionById(access_token, sessionId, VIVA_ENV);
+    const result = await getSessionById(access_token, sessionId);
     console.log("Session", result);
     return new Response(
       JSON.stringify({
