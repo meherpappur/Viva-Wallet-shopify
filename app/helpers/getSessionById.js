@@ -9,7 +9,7 @@ export async function getSessionById(token, sessionId, env = VIVA_ENV) {
   });
 
   const data = await res.json();
-
+  console.log(data);
   if (!res.ok) {
     log("err", "getSessionById", "Failed", data);
     throw new Error(JSON.stringify(data));
