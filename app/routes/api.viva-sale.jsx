@@ -4,6 +4,7 @@ import { initiateSale } from "../helpers/initiateSale.js";
 import { pollSession } from "../helpers/pollSession.js";
 
 const cashRegisterId = "POS-Wholesale";
+const sourceCode = "123456";
 
 let cache = {
   token: null,
@@ -80,36 +81,33 @@ export const action = async ({ request }) => {
       merchantReference: `6e4d8cd5-68ad-4f82-9b55-26bb34a8e786`,
       customerTrns: "Shopify POS sale",
     });
-    console.log("Sale", sale);
-    if (!sale?.sessionId) {
-      throw new Error("No sessionId returned from initiateSale");
-    }
+    console.log(sale);
     const result = await new Promise((resolve, reject) => {
       const { stop } = pollSession(
         access_token,
         sale.sessionId,
-        (data) => {
-          if (data.eventId === 1100) {
-            clearTimeout(timeout);
+        (state) => {
+          if (state.status === "SUCCESS") {
             stop();
-            resolve(data);
+            resolve(state);
           }
 
-          if ([1200, 1201, 1300, 1400].includes(data.eventId)) {
-            clearTimeout(timeout);
+          if (state.status === "FAILED") {
             stop();
-            reject(data);
+            reject(state);
+          }
+
+          if (state.status === "TIMEOUT") {
+            stop();
+            reject(state);
           }
         },
-        { intervalMs: 10000 },
+        {
+          intervalMs: 10000,
+          timeoutMs: 300000,
+        },
       );
-
-      const timeout = setTimeout(() => {
-        stop();
-        reject({ error: "Payment timeout" });
-      }, 120000);
     });
-
     return new Response(
       JSON.stringify({
         success: true,

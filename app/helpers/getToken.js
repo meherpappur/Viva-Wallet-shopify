@@ -20,7 +20,6 @@ export async function getToken(clientId, clientSecret, env = VIVA_ENV) {
   });
 
   const data = await res.json();
-
   if (!res.ok) {
     log("err", "getToken", "Failed", data);
     throw new Error(JSON.stringify(data));
