@@ -23,7 +23,7 @@ export function pollSession(token, sessionId, onResult, opts = {}) {
 
     try {
       const { status, data } = await getSessionById(token, sessionId, env);
-
+      console.log("Poll", data);
       switch (status) {
         case 200:
           // Terminal: success or failure
@@ -68,7 +68,12 @@ export function pollSession(token, sessionId, onResult, opts = {}) {
             scheduleNext();
           } else {
             log("err", "pollSession", `Unexpected status ${status}`);
-            onResult({ done: true, success: false, error: `unexpected_${status}`, data });
+            onResult({
+              done: true,
+              success: false,
+              error: `unexpected_${status}`,
+              data,
+            });
             stop(`unexpected_${status}`);
           }
       }
