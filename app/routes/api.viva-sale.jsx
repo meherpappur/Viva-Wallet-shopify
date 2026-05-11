@@ -4,7 +4,6 @@ import { initiateSale } from "../helpers/initiateSale.js";
 import { pollSession } from "../helpers/pollSession.js";
 
 const cashRegisterId = "POS-Wholesale";
-const sourceCode = "123456";
 
 let cache = {
   token: null,
@@ -102,7 +101,7 @@ export const action = async ({ request }) => {
             reject(data);
           }
         },
-        { intervalMs: 2000 },
+        { intervalMs: 10000 },
       );
 
       const timeout = setTimeout(() => {
