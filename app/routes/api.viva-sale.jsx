@@ -53,23 +53,7 @@ export const action = async ({ request }) => {
 
     const access_token = await getCachedToken();
     console.log(access_token);
-    /*  const devices = await searchDevices(access_token, {
-        statusId: 1,
-        sourceCode,
-      });
-
-      if (!devices || devices.length === 0) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "No active POS devices found",
-          }),
-          { status: 404 },
-        );
-      }
-
-      const terminalId = devices[0].terminalId;
-  */
+   
 
     const terminalId = "16731762";
     const sale = await initiateSale(access_token, {
