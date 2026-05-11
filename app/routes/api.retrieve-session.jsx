@@ -1,4 +1,4 @@
-import { VIVA_ENV } from "app/helpers/config.js";
+import { VIVA_ENV } from "../helpers/config";
 import { getSessionById } from "app/helpers/getSessionById.js";
 
 export const action = async ({ request }) => {
