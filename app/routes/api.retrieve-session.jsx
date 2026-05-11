@@ -1,4 +1,4 @@
-import { getSessionById } from "app/helpers/getSessionById.js";
+import { getSessionById } from "../helpers/getSessionById";
 
 export const action = async ({ request }) => {
   try {
