@@ -5,57 +5,32 @@ import { PendingView } from "./components/Pending.jsx";
 import { SuccessView } from "./components/Success.jsx";
 import { ErrorView } from "./components/Error.jsx";
 
-async function requestVivaPayment({
-  amountInCents,
-  cashRegisterId,
-  merchantRef,
-}) {
+async function requestVivaPayment({ amountInCents }) {
   try {
-    // TEMP: API disabled for testing
-    // const res = await fetch("/api/viva-payment", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({ amountInCents, cashRegisterId, merchantRef }),
-    // });
+    const res = await fetch(
+      "https://viva-wallet-shopify.onrender.com/api/viva-sale",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: amountInCents }),
+      },
+    );
 
-    // if (!res.ok) {
-    //   const err = await res.json().catch(() => ({
-    //     error: `HTTP ${res.status}`,
-    //   }));
-    //   throw new Error(err.error ?? "Payment request failed");
-    // }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({
+        error: `HTTP ${res.status}`,
+      }));
 
-    // return res.json();
+      throw new Error(err?.error || err?.message || "Payment request failed");
+    }
 
-    // Dummy response after 3 seconds
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const response = {
-      ok: true,
-      status: "approved",
-      transactionId: "TXN_TEST_123456",
-      sessionId: "SESSION_TEST_789",
-      merchantRef,
-      amount: amountInCents,
-      currency: "978",
-      message: "Payment successful",
-      timestamp: new Date().toISOString(),
-    };
-
-    // // SAVE TO SHOPIFY CART ATTRIBUTES
-    // await shopify.cart.addCartProperties({
-    //   merchantRef: response.merchantRef,
-    //   vivaReferenceId: response.transactionId,
-    // });
-
-    return response;
+    return await res.json();
   } catch (err) {
     console.error("Viva payment error:", err);
 
     return {
-      ok: false,
-      status: "failed",
-      message: err.message || "Payment failed",
+      success: false,
+      error: err?.message || "Payment failed",
     };
   }
 }
@@ -67,7 +42,7 @@ export default async () => {
 function Extension() {
   const { cart, toast } = shopify;
 
-  const subtotal = 100;
+  const orderTotal = Number(cart.current.value?.cost?.totalAmount?.amount ?? 0);
 
   const [view, setView] = useState("form");
   const [paymentType, setPaymentType] = useState("full");
@@ -77,22 +52,22 @@ function Extension() {
   const [errorMsg, setErrorMsg] = useState("");
 
   const amountToSend = useMemo(() => {
-    if (paymentType === "full") return subtotal;
+    if (paymentType === "full") return orderTotal;
     const n = parseFloat(customAmount);
     return isNaN(n) ? 0 : n;
-  }, [paymentType, customAmount, subtotal]);
+  }, [paymentType, customAmount, orderTotal]);
 
-  const remainingAmount = Math.max(subtotal - amountToSend, 0);
+  const remainingAmount = Math.max(orderTotal - amountToSend, 0);
 
   const amountError = useMemo(() => {
     if (paymentType !== "custom") return "";
     if (!customAmount) return "";
     const n = parseFloat(customAmount);
     if (isNaN(n) || n <= 0) return "Enter an amount greater than £0";
-    if (n > subtotal)
-      return `Cannot exceed cart total of £${subtotal.toFixed(2)}`;
+    if (n > orderTotal)
+      return `Cannot exceed cart total of £${orderTotal.toFixed(2)}`;
     return "";
-  }, [paymentType, customAmount, subtotal]);
+  }, [paymentType, customAmount, orderTotal]);
 
   const canSubmit = amountToSend > 0 && !amountError;
 
@@ -105,14 +80,17 @@ function Extension() {
     try {
       const data = await requestVivaPayment({
         amountInCents: Math.round(amountToSend * 100),
-        cashRegisterId: "ECR-001",
-        merchantRef,
       });
 
       setResult(data);
 
-      if (data.ok) {
+      if (data.success) {
         setView("success");
+        await shopify.cart.addCartProperties({
+          merchantRef: data?.payment?.merchantReference,
+          vivaReferenceId: data?.payment?.transactionId,
+          applicationLabel: data?.payment?.applicationLabel,
+        });
         toast.show(`Payment approved — £${amountToSend.toFixed(2)}`);
       } else {
         setErrorMsg(data.message ?? "Payment declined");
@@ -222,7 +200,7 @@ function Extension() {
                 <s-stack gap="small">
                   <s-stack direction="inline" justifyContent="space-between">
                     <s-text tone="subdued">Cart total</s-text>
-                    <s-text>£{subtotal.toFixed(2)}</s-text>
+                    <s-text>£{orderTotal.toFixed(2)}</s-text>
                   </s-stack>
                 </s-stack>
               </s-section>
@@ -237,7 +215,7 @@ function Extension() {
                     }}
                   >
                     <s-choice value="full">
-                      Charge full amount — £{subtotal.toFixed(2)}
+                      Charge full amount — £{orderTotal.toFixed(2)}
                     </s-choice>
                     <s-choice value="custom">Split / custom amount</s-choice>
                   </s-choice-list>
@@ -257,7 +235,7 @@ function Extension() {
 
                       {!amountError &&
                         amountToSend > 0 &&
-                        amountToSend < subtotal && (
+                        amountToSend < orderTotal && (
                           <s-stack
                             direction="inline"
                             justifyContent="space-between"

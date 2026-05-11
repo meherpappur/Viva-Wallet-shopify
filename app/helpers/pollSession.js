@@ -29,8 +29,7 @@ export function pollSession(token, sessionId, onResult, opts = {}) {
 
       const isSuccess =
         success === true &&
-        data?.message?.toLowerCase().includes("successful") &&
-        !data?.transactionId?.trim();
+        data?.message?.toLowerCase().includes("successful");
 
       const isFailed =
         success === false || [1200, 1201, 1300, 1400].includes(eventId);
