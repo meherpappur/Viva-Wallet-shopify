@@ -1,21 +1,30 @@
-export const action = async ({ request, context }) => {
+import { authenticate } from "../shopify.server";
+import { UPDATE_METAFIELD_MUTATION } from "../constants/queries";
+
+export const action = async ({ request }) => {
   try {
-    const order = await request.json();
+    const { payload, topic, shop, admin } = await authenticate.webhook(request);
+
+    // ✅ Fix 1: Define `order` from `payload`
+    const order = payload;
 
     console.log("📦 Shopify Webhook Received");
+    console.log("Webhook topic:", topic);
+    console.log("Shop:", shop);
+    console.log("Payload:", JSON.stringify(payload, null, 2));
     console.log("🧾 Order ID:", order?.id);
 
     const ownerId = `gid://shopify/Order/${order.id}`;
 
-    const source = order?.source_name || order?.sourceName;
+    // ✅ Fix 2: REST webhook payloads always use snake_case — no `sourceName`
+    const source = order?.source_name;
     console.log("🔌 Source:", source);
 
-    const attributes = order?.customAttributes || order?.note_attributes || [];
+    // ✅ Fix 3: REST webhook payloads use `note_attributes` only, not `customAttributes`
+    const attributes = order?.note_attributes || [];
 
     const vivaAttr = attributes.find((attr) => attr.key === "vivaReferenceId");
-
     const vivaReferenceId = vivaAttr?.value;
-
     console.log("💳 Viva Reference ID:", vivaReferenceId);
 
     const isPOS = source === "pos";
@@ -46,12 +55,12 @@ export const action = async ({ request, context }) => {
 
     console.log("🧩 Metafields payload:", metafields);
 
-    const response = await context.admin.graphql(UPDATE_METAFIELD_MUTATION, {
+    // ✅ Fix 4: `admin` comes from `authenticate.webhook`, not `authenticate.admin`
+    const response = await admin.graphql(UPDATE_METAFIELD_MUTATION, {
       variables: { metafields },
     });
 
     const result = await response.json();
-
     console.log("📡 Shopify response:", JSON.stringify(result));
 
     const userErrors = result?.data?.metafieldsSet?.userErrors;
@@ -62,8 +71,8 @@ export const action = async ({ request, context }) => {
     }
 
     console.log("🎉 Order marked as VERIFIED by Viva");
-
     return new Response("OK", { status: 200 });
+
   } catch (err) {
     console.error("🔥 Webhook error:", err);
     return new Response("Error", { status: 500 });
