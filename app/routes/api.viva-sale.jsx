@@ -84,7 +84,7 @@ export const action = async ({ request }) => {
     }
 
     const access_token = await getCachedToken();
-
+    console.log("Token", access_token);
     const terminalId = "16731762";
 
     const sale = await initiateSale(access_token, {
