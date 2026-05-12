@@ -17,3 +17,7 @@ target = "pos.home.tile.render"
 [[extensions.targeting]]
 module = "./src/Modal.jsx"
 target = "pos.home.modal.render"
+
+[extensions.capabilities]
+network_access = true
+api_access = true

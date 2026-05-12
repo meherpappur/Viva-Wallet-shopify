@@ -42,8 +42,7 @@ export default async () => {
 function Extension() {
   const { cart, toast } = shopify;
 
-  const orderTotal = Number(cart.current.value?.cost?.totalAmount?.amount ?? 0);
-
+  const orderTotal = Number(cart.current.value?.grandTotal ?? 0);
   const [view, setView] = useState("form");
   const [paymentType, setPaymentType] = useState("full");
   const [customAmount, setCustomAmount] = useState("");
@@ -86,12 +85,15 @@ function Extension() {
 
       if (data.success) {
         setView("success");
-        await shopify.cart.addCartProperties({
-          merchantRef: data?.payment?.merchantReference,
-          vivaReferenceId: data?.payment?.transactionId,
-          applicationLabel: data?.payment?.applicationLabel,
-        });
         toast.show(`Payment approved — £${amountToSend.toFixed(2)}`);
+
+        if (data?.payment?.merchantReference) {
+          await shopify.cart.addCartProperties({
+            merchantRef: data.payment.merchantReference,
+            vivaReferenceId: data?.payment?.transactionId ?? "",
+            applicationLabel: data?.payment?.applicationLabel ?? "",
+          });
+        }
       } else {
         setErrorMsg(data.message ?? "Payment declined");
         setView("error");

@@ -1,10 +1,14 @@
 import { getToken } from "../helpers/getToken.js";
-//import { searchDevices } from "../helpers/searchDevices.js";
 import { initiateSale } from "../helpers/initiateSale.js";
 import { pollSession } from "../helpers/pollSession.js";
 
 const cashRegisterId = "POS-Wholesale";
-const sourceCode = "123456";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,OPTIONS, POST",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
 
 let cache = {
   token: null,
@@ -17,7 +21,10 @@ async function getCachedToken() {
   const now = Date.now();
 
   const valid = cache.token && cache.expiresAt - BUFFER > now;
-  if (valid) return cache.token;
+
+  if (valid) {
+    return cache.token;
+  }
 
   if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET) {
     throw new Error("Missing Viva client credentials");
@@ -36,7 +43,29 @@ async function getCachedToken() {
   return cache.token;
 }
 
+// IMPORTANT FOR PREFLIGHT
+export const loader = async ({ request }) => {
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
+  }
+
+  return new Response("OK", {
+    headers: corsHeaders,
+  });
+};
+
 export const action = async ({ request }) => {
+  // HANDLE OPTIONS INSIDE ACTION TOO
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
+  }
+
   try {
     const body = await request.json();
     const { amount } = body;
@@ -47,15 +76,17 @@ export const action = async ({ request }) => {
           success: false,
           error: "Missing required fields",
         }),
-        { status: 400 },
+        {
+          status: 400,
+          headers: corsHeaders,
+        },
       );
     }
 
     const access_token = await getCachedToken();
-    console.log(access_token);
-   
 
     const terminalId = "16731762";
+
     const sale = await initiateSale(access_token, {
       terminalId,
       cashRegisterId,
@@ -65,7 +96,7 @@ export const action = async ({ request }) => {
       merchantReference: `6e4d8cd5-68ad-4f82-9b55-26bb34a8e786`,
       customerTrns: "Shopify POS sale",
     });
-    console.log(sale);
+
     const result = await new Promise((resolve, reject) => {
       const { stop } = pollSession(
         access_token,
@@ -76,12 +107,7 @@ export const action = async ({ request }) => {
             resolve(state);
           }
 
-          if (state.status === "FAILED") {
-            stop();
-            reject(state);
-          }
-
-          if (state.status === "TIMEOUT") {
+          if (state.status === "FAILED" || state.status === "TIMEOUT") {
             stop();
             reject(state);
           }
@@ -92,17 +118,24 @@ export const action = async ({ request }) => {
         },
       );
     });
+
     return new Response(
       JSON.stringify({
         success: true,
         sessionId: sale.sessionId,
         payment: result,
       }),
-      { status: 200 },
+      {
+        status: 200,
+        headers: corsHeaders,
+      },
     );
   } catch (err) {
     if (err?.status === 401) {
-      cache = { token: null, expiresAt: 0 };
+      cache = {
+        token: null,
+        expiresAt: 0,
+      };
     }
 
     return new Response(
@@ -110,7 +143,10 @@ export const action = async ({ request }) => {
         success: false,
         error: err?.message || err?.error || "Payment failed",
       }),
-      { status: 500 },
+      {
+        status: 500,
+        headers: corsHeaders,
+      },
     );
   }
 };
