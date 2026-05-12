@@ -43,10 +43,7 @@ export function SuccessView({
             {/* AMOUNT */}
             <s-stack direction="inline" justifyContent="space-between">
               <s-text>Amount charged</s-text>
-              <s-text>
-                £
-                {(Number(amountToSend || result?.amount || 0) / 100).toFixed(2)}
-              </s-text>
+              <s-text>£{Number(amountToSend || result?.amount)}</s-text>
             </s-stack>
 
             {/* PAYMENT TYPE */}
@@ -86,7 +83,11 @@ export function SuccessView({
 
       {/* ACTION */}
       <s-box inlineSize="50%" alignItems="center">
-        <s-button variant="primary" onClick={onReset} inlineSize="100%">
+        <s-button
+          variant="primary"
+          onClick={() => window.close()}
+          inlineSize="100%"
+        >
           Done
         </s-button>
       </s-box>

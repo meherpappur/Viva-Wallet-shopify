@@ -7,6 +7,7 @@ import { ErrorView } from "./components/Error.jsx";
 
 async function requestVivaPayment({ amountInCents }) {
   try {
+    
     const res = await fetch(
       "https://viva-wallet-shopify.onrender.com/api/viva-sale",
       {
@@ -41,7 +42,7 @@ export default async () => {
 
 function Extension() {
   const { cart, toast } = shopify;
-
+  console.log("Hello");
   const orderTotal = Number(cart.current.value?.grandTotal ?? 0);
   const [view, setView] = useState("form");
   const [paymentType, setPaymentType] = useState("full");
@@ -80,20 +81,24 @@ function Extension() {
       const data = await requestVivaPayment({
         amountInCents: Math.round(amountToSend * 100),
       });
-
+      console.log("data", data);
       setResult(data);
 
       if (data.success) {
         setView("success");
-        toast.show(`Payment approved — £${amountToSend.toFixed(2)}`);
 
-        if (data?.payment?.merchantReference) {
+        const txn = data.payment.data;
+
+        try {
           await shopify.cart.addCartProperties({
-            merchantRef: data.payment.merchantReference,
-            vivaReferenceId: data?.payment?.transactionId ?? "",
-            applicationLabel: data?.payment?.applicationLabel ?? "",
+            vivaReferenceId: txn?.transactionId ?? "",
+            applicationLabel: txn?.applicationLabel ?? "",
           });
+        } catch (err) {
+          console.error("addCartProperties failed", err);
         }
+
+        toast.show(`Payment approved — £${amountToSend.toFixed(2)}`);
       } else {
         setErrorMsg(data.message ?? "Payment declined");
         setView("error");
