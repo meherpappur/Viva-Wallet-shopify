@@ -7,7 +7,6 @@ import { ErrorView } from "./components/Error.jsx";
 
 async function requestVivaPayment({ amountInCents }) {
   try {
-    
     const res = await fetch(
       "https://viva-wallet-shopify.onrender.com/api/viva-sale",
       {
@@ -42,7 +41,6 @@ export default async () => {
 
 function Extension() {
   const { cart, toast } = shopify;
-  console.log("Hello");
   const orderTotal = Number(cart.current.value?.grandTotal ?? 0);
   const [view, setView] = useState("form");
   const [paymentType, setPaymentType] = useState("full");
