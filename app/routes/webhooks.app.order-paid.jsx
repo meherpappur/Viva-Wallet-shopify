@@ -23,7 +23,7 @@ export const action = async ({ request }) => {
     // ✅ Fix 3: REST webhook payloads use `note_attributes` only, not `customAttributes`
     const attributes = order?.note_attributes || [];
 
-    const vivaAttr = attributes.find((attr) => attr.key === "vivaReferenceId");
+    const vivaAttr = attributes.find((attr) => attr.name === "vivaReferenceId");
     const vivaReferenceId = vivaAttr?.value;
     console.log("💳 Viva Reference ID:", vivaReferenceId);
 
@@ -55,7 +55,6 @@ export const action = async ({ request }) => {
 
     console.log("🧩 Metafields payload:", metafields);
 
-    // ✅ Fix 4: `admin` comes from `authenticate.webhook`, not `authenticate.admin`
     const response = await admin.graphql(UPDATE_METAFIELD_MUTATION, {
       variables: { metafields },
     });
@@ -72,7 +71,6 @@ export const action = async ({ request }) => {
 
     console.log("🎉 Order marked as VERIFIED by Viva");
     return new Response("OK", { status: 200 });
-
   } catch (err) {
     console.error("🔥 Webhook error:", err);
     return new Response("Error", { status: 500 });
