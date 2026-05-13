@@ -40,6 +40,9 @@ export default async () => {
 function Extension() {
   const { cart, toast } = shopify;
   const orderTotal = Number(cart.current.value?.grandTotal ?? 0);
+  shopify.cart.addCartProperties({
+    vivaReferenceId: "123456",
+  });
   const [view, setView] = useState("form");
   const [paymentType, setPaymentType] = useState("full");
   const [cashAmount, setCashAmount] = useState("");
