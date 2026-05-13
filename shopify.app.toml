@@ -2,7 +2,7 @@
 
 client_id = "3a788266b0fac56167db6715036b2493"
 name = "VivaPay POS"
-application_url = "https://example.com"
+application_url = "https://viva-wallet-shopify.onrender.com"
 embedded = true
 
 [build]
@@ -28,7 +28,7 @@ api_version = "2026-01"
 scopes = "read_customers,read_orders,write_orders,write_products"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://viva-wallet-shopify.onrender.com/api/auth" ]
 
 [product.metafields.app.demo_info]
 type = "single_line_text_field"
