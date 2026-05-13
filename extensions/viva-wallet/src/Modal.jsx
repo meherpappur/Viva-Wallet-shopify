@@ -20,14 +20,12 @@ async function requestVivaPayment({ amountInCents }) {
       const err = await res.json().catch(() => ({
         error: `HTTP ${res.status}`,
       }));
-
       throw new Error(err?.error || err?.message || "Payment request failed");
     }
 
     return await res.json();
   } catch (err) {
     console.error("Viva payment error:", err);
-
     return {
       success: false,
       error: err?.message || "Payment failed",
@@ -44,30 +42,35 @@ function Extension() {
   const orderTotal = Number(cart.current.value?.grandTotal ?? 0);
   const [view, setView] = useState("form");
   const [paymentType, setPaymentType] = useState("full");
-  const [customAmount, setCustomAmount] = useState("");
+  const [cashAmount, setCashAmount] = useState("");
   const [merchantRef, setMerchantRef] = useState("");
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
 
+  const cashValue = useMemo(() => {
+    const n = parseFloat(cashAmount);
+    return isNaN(n) || n < 0 ? 0 : n;
+  }, [cashAmount]);
+
   const amountToSend = useMemo(() => {
     if (paymentType === "full") return orderTotal;
-    const n = parseFloat(customAmount);
-    return isNaN(n) ? 0 : n;
-  }, [paymentType, customAmount, orderTotal]);
+    return Math.max(orderTotal - cashValue, 0);
+  }, [paymentType, cashValue, orderTotal]);
 
-  const remainingAmount = Math.max(orderTotal - amountToSend, 0);
-
-  const amountError = useMemo(() => {
+  const cashError = useMemo(() => {
     if (paymentType !== "custom") return "";
-    if (!customAmount) return "";
-    const n = parseFloat(customAmount);
-    if (isNaN(n) || n <= 0) return "Enter an amount greater than £0";
-    if (n > orderTotal)
-      return `Cannot exceed cart total of £${orderTotal.toFixed(2)}`;
+    if (!cashAmount) return "";
+    const n = parseFloat(cashAmount);
+    if (isNaN(n) || n <= 0) return "Enter a cash amount greater than £0"; // ✅
+    if (n >= orderTotal)
+      return `Cash must be less than £${orderTotal.toFixed(2)}`;
     return "";
-  }, [paymentType, customAmount, orderTotal]);
+  }, [paymentType, cashAmount, orderTotal]);
 
-  const canSubmit = amountToSend > 0 && !amountError;
+  const canSubmit = useMemo(() => {
+    if (paymentType === "full") return orderTotal > 0;
+    return cashValue > 0 && !cashError && amountToSend > 0; // ✅
+  }, [paymentType, orderTotal, cashValue, cashError, amountToSend]);
 
   const handleSend = useCallback(async () => {
     if (!canSubmit) return;
@@ -110,7 +113,7 @@ function Extension() {
   const handleReset = useCallback(() => {
     setView("form");
     setPaymentType("full");
-    setCustomAmount("");
+    setCashAmount("");
     setMerchantRef("");
     setResult(null);
     setErrorMsg("");
@@ -145,7 +148,7 @@ function Extension() {
             amountToSend={amountToSend}
             merchantRef={merchantRef}
             paymentType={paymentType}
-            remainingAmount={remainingAmount}
+            remainingAmount={amountToSend}
             onReset={handleReset}
           />
         </s-box>
@@ -192,7 +195,6 @@ function Extension() {
                     alt="Terminal"
                   />
                 </s-box>
-
                 <s-stack>
                   <s-text fontWeight="bold">Viva Card Terminal 💳</s-text>
                   <s-text tone="subdued" variant="bodySm">
@@ -216,41 +218,43 @@ function Extension() {
                     values={[paymentType]}
                     onChange={(e) => {
                       setPaymentType(e?.currentTarget?.values[0] ?? "full");
-                      setCustomAmount("");
+                      setCashAmount("");
                     }}
                   >
                     <s-choice value="full">
                       Charge full amount — £{orderTotal.toFixed(2)}
                     </s-choice>
-                    <s-choice value="custom">Split / custom amount</s-choice>
+                    <s-choice value="custom">
+                      Split payment (cash + card)
+                    </s-choice>
                   </s-choice-list>
 
                   {paymentType === "custom" && (
                     <s-stack gap="small">
                       <s-number-field
-                        label="Amount to charge (£)"
+                        label="Cash in hand (£)"
                         inputMode="decimal"
                         placeholder="0.00"
-                        value={customAmount}
-                        min="0.01"
+                        value={cashAmount}
+                        min="0"
                         step="0.01"
-                        error={amountError || undefined}
-                        onChange={(e) => setCustomAmount(e.currentTarget.value)}
+                        error={cashError || undefined}
+                        onChange={(e) => setCashAmount(e.currentTarget.value)}
                       />
 
-                      {!amountError &&
-                        amountToSend > 0 &&
-                        amountToSend < orderTotal && (
-                          <s-stack
-                            direction="inline"
-                            justifyContent="space-between"
-                          >
-                            <s-text tone="subdued">Remaining balance</s-text>
-                            <s-text tone="info">
-                              £{remainingAmount.toFixed(2)}
-                            </s-text>
-                          </s-stack>
-                        )}
+                      {!cashError && cashValue > 0 && (
+                        <s-stack
+                          direction="inline"
+                          justifyContent="space-between"
+                        >
+                          <s-text tone="subdued">
+                            Remaining to charge to card
+                          </s-text>
+                          <s-text tone="info">
+                            £{amountToSend.toFixed(2)}
+                          </s-text>
+                        </s-stack>
+                      )}
                     </s-stack>
                   )}
                 </s-stack>
@@ -258,6 +262,12 @@ function Extension() {
 
               <s-section>
                 <s-stack gap="small">
+                  {paymentType === "custom" && cashValue > 0 && (
+                    <s-stack direction="inline" justifyContent="space-between">
+                      <s-text tone="subdued">Cash</s-text>
+                      <s-text>£{cashValue.toFixed(2)}</s-text>
+                    </s-stack>
+                  )}
                   <s-stack direction="inline" justifyContent="space-between">
                     <s-text>Sending to terminal</s-text>
                     <s-text>

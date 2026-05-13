@@ -2,6 +2,7 @@ import "@shopify/shopify-app-react-router/adapters/node";
 import {
   ApiVersion,
   AppDistribution,
+  DeliveryMethod,
   shopifyApp,
 } from "@shopify/shopify-app-react-router/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
@@ -15,6 +16,17 @@ const shopify = shopifyApp({
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
+  webhooks: {
+    ORDERS_PAID: {
+      deliveryMethod: DeliveryMethod.Http,
+      callbackUrl: "/webhooks/app/order-paid",
+    },
+  },
+  hooks: {
+    afterAuth: async ({ session }) => {
+      await registerWebhooks({ session });
+    },
+  },
   distribution: AppDistribution.AppStore,
   future: {
     expiringOfflineAccessTokens: true,
@@ -25,6 +37,7 @@ const shopify = shopifyApp({
 });
 
 export default shopify;
+
 export const apiVersion = ApiVersion.October25;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;

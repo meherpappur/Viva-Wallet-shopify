@@ -20,4 +20,3 @@ target = "pos.home.modal.render"
 
 [extensions.capabilities]
 network_access = true
-api_access = true
