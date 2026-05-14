@@ -28,7 +28,7 @@ async function requestVivaPayment({ amountInCents }) {
     console.error("Viva payment error:", err);
     return {
       success: false,
-      error: err?.message || "Payment failed",
+      message: err?.message || "Payment failed",
     };
   }
 }
@@ -87,9 +87,7 @@ function Extension() {
 
       if (data.success) {
         setView("success");
-
         const txn = data.payment.data;
-
         try {
           await shopify.cart.addCartProperties({
             vivaReferenceId: txn?.transactionId ?? "",

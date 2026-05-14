@@ -16,6 +16,17 @@ const shopify = shopifyApp({
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
+  webhooks: {
+    ORDERS_PAID: {
+      deliveryMethod: DeliveryMethod.Http,
+      callbackUrl: "/webhooks/app/order-paid",
+    },
+  },
+  hooks: {
+    afterAuth: async ({ session }) => {
+      await registerWebhooks({ session });
+    },
+  },
   distribution: AppDistribution.AppStore,
   future: {
     expiringOfflineAccessTokens: true,
